@@ -1,0 +1,6 @@
+{
+  "name": "Peacock",
+  "tagline": "",
+  "body": "<html>\r\n  <head>\r\n    <script src=\"lib/jquery-1.8.3.min.js\"></script>\r\n    <script src=\"lib/three.min.js\"></script>\r\n    <script src=\"lib/OrbitAndPanControls.js\"></script>\r\n    <script src=\"lib/TrackballControls.js\"></script>\r\n    <script src=\"lib/Coordinates.js\"></script>\r\n    <script src=\"lib/dat.gui.min.js\"></script>\r\n  </head>\r\n  <body>\r\n    <div id=\"container\" style=\"height: 492px, width: 876px\"></div>\r\n    <script src=\"https://dl.dropbox.com/s/adzg43y1p2sky73/pencil.js?dl=0\">aaaaaaaaaaa</script>\r\n  </body>\r\n</html>",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}
