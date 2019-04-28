@@ -11,10 +11,10 @@
     <div id="container" style="height: 492px, width: 876px"></div>
     
    <script type="text/javascript">
-    ////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // Change from fixed steps to timed updates
 ////////////////////////////////////////////////////////////////////////////////
-/*global THREE Coordinates, document, window, container, Stats;*/
+/*global THREE, Coordinates, document, window, container, Stats*/
 
 var camera, scene, renderer, stats;
 var cameraControls;
@@ -33,20 +33,17 @@ var bird, pencil;
 
 var tiltDirection = 1;
 
+var smoothX = 0, smoothY = 0;
 var line;
 var mouseX = 0.0; mouseY = 0.0;
 var prevMouseX = 0.0; prevMouseY = 0.0;
-var points = [];
 
-var epsilon = 2;
-	
 //var canvasWidth = 846;
 //var canvasHeight = 494;
 
  var material = new THREE.LineBasicMaterial({
         color: 0x1F1F1F
     });
-	
 
 
 document.getElementsByTagName("body")[0].style.cursor = "url('none.png'), auto";
@@ -55,26 +52,28 @@ document.getElementsByTagName("body")[0].style.cursor = "url('none.png'), auto";
 
 $(document).mousedown(function() {
    mouseDown = 1;
-   points.length = 0;
 });
 
 
 $(document).mouseup(function() {
    mouseDown = 0;	
-   startSmoothing();
-   
 });
-
 
 $(document).on('mousemove',function(e){
 
-      prevMouseX = mouseX;
-	  prevMouseY = mouseY;
+      prevMouseX = smoothX;
+	  prevMouseY = smoothY;
+	 
 
 	  mouseX =  (e.clientX - canvasWidth/2.0) * 2.0;// - canvasWidth	
 	  mouseY =  (e.clientY - canvasHeight/2.0) * 2.0;// - canvasHeight;
+	  
+     alpha = 0.7;
+	 smoothX  = alpha * smoothX + (1 - alpha) * mouseX;
+	 smoothY = alpha * smoothY + (1 - alpha) * mouseY;
 
-
+     	 
+			
 	if(mouseDown)
 	{
 		  createLine();	  
@@ -94,6 +93,8 @@ function init() {
 	renderer.setSize(canvasWidth, canvasHeight);
 	renderer.setClearColorHex( 0x0, 1.0 );
 	renderer.shadowMapEnabled = true;
+	renderer.shadowMapSoft = true;
+	renderer.shadowMapType = THREE.PCFSoftShadowMap; 
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 1, 4000 );
@@ -123,11 +124,14 @@ function fillScene() {
 	scene.add( headlight );
 
 	var light = new THREE.SpotLight( 0xFFFFFF, 1.0 );
-	light.position.set( -600, 1200, 300 );
-	light.angle = 20 * Math.PI / 180;
+	light.position.set( -500, 1200, 300 );
+	light.angle = 90 * Math.PI / 180;
 	light.exponent = 1;
-	light.target.position.set( 0, 200, 0 );
+	light.target.position.set( -200,0,-100);
 	light.castShadow = true;
+	light.shadowCameraFov = 85;
+	light.shadowMapWidth = 2048; // default is 512
+	light.shadowMapHeight = 2048; // default is 512
 
 	scene.add( light );
 
@@ -155,95 +159,17 @@ function fillScene() {
 
 }
 
-
-
-function startSmoothing()
-{	
-alert("initial : " + points.length);
-var rs = [];
-	rs = properRDP(points,0.2);	
-	alert("laaaaaaater : " + rs.length);
-	
-	var red  = new THREE.MeshPhongMaterial({ ambient: 0x964514, color: 0xFF0000	, specular: 0x555555, shininess: 20 });
-  	for(var i = 0; i < points.length; i++)
-	{
-	   var geometry = new THREE.Geometry();
-	   var startPoint = points[i];
-	   var endPoint = points[i+1];
-
-	   geometry.vertices.push(new THREE.Vector3(startPoint.x, 0, startPoint.y));
-	   geometry.vertices.push(new THREE.Vector3(endPoint.x, 0, endPoint.y));	
-	   
-	   line = new THREE.Line(geometry, red);
-	   scene.add(line); 	  
-	}
-	
-}
-
-
-function properRDP(points,epsilon){
-
-	var firstPoint=points[0];
-    var lastPoint=points[points.length-1];
-    if (points.length<3){
-        return points;
-    }
-    var index=-1;
-    var dist=0;
-    for (var i=1;i<points.length-1;i++){
-        var cDist=findPerpendicularDistance(points[i],firstPoint,lastPoint);
-        if (cDist>dist){
-            dist=cDist;
-            index=i;
-        }
-    }
-    if (dist>epsilon){
-        // iterate
-        var l1=points.slice(0, index+1);
-        var l2=points.slice(index);
-        var r1=properRDP(l1,epsilon);
-        var r2=properRDP(l2,epsilon);
-        // concat r2 to r1 minus the end/startpoint that will be the same
-        var rs=r1.slice(0,r1.length-1).concat(r2);
-        return rs;
-    }else{
-        return [firstPoint,lastPoint];
-    }
-}
-
-    
-    
-function findPerpendicularDistance(p, p1,p2) {
-    // if start and end point are on the same x the distance is the difference in X.
-    var result;
-    var slope;
-    var intercept;
-    if (p1.x==p2.x){
-        result=Math.abs(p[0]-p1[0]);
-    }else{
-        slope = (p2.y - p1.y) / (p2.x - p1.x);
-        intercept = p1.y - (slope * p1.x);
-		
-        result = Math.abs(slope * p[0] - p[1] + intercept) / Math.sqrt(Math.pow(slope, 2) + 1);
-		alert(result);
-    }   
-	
-    return result;
-}
-
-
 function createLine()
-{ 
-/*
+{
+ 
    var geometry = new THREE.Geometry();
    
-
-   geometry.vertices.push(new THREE.Vector3(prevMouseX, 0, prevMouseY));
-   geometry.vertices.push(new THREE.Vector3(mouseX, 0, mouseY));	
+   // taking y as 2, to remove inteference with papaer at y = 0
+   geometry.vertices.push(new THREE.Vector3(prevMouseX, 2, prevMouseY));
+   geometry.vertices.push(new THREE.Vector3(smoothX, 2, smoothY));	
    
    line = new THREE.Line(geometry, material);
-   scene.add(line);*/
-   points.push({x:mouseX, y:mouseY});
+   scene.add(line);
 }
 
 
@@ -375,6 +301,7 @@ try {
 	var errorReport = "Your program encountered an unrecoverable error, can not draw on canvas. Error was:<br/><br/>";
 	$('#container').append(errorReport+e);
 }
+
     </script>
   </body>
 </html>
